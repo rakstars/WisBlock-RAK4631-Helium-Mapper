@@ -31,4 +31,44 @@ void lora_rx_failed(void);
 #define BUTTON        0b0100000000000000
 #define N_BUTTON      0b1011111111111111
 
+/** Application stuff */
+extern BaseType_t g_higher_priority_task_woken;
+
+// GNSS functions
+#include "TinyGPS++.h"
+#include <SoftwareSerial.h>
+bool init_gnss(void);
+bool poll_gnss(void);
+
+// LoRaWan functions
+struct mapper_data_s
+{
+	uint8_t lat_1 = 0;			// 1
+	uint8_t lat_2 = 0;			// 2
+	uint8_t lat_3 = 0;			// 3
+	uint8_t lat_4 = 0;			// 4
+	uint8_t long_1 = 0;			// 5
+	uint8_t long_2 = 0;			// 6
+	uint8_t long_3 = 0;			// 7
+	uint8_t long_4 = 0;			// 8
+	uint8_t alt_1 = 0;			// 9
+	uint8_t alt_2 = 0;			// 10
+};
+extern mapper_data_s g_mapper_data;
+#define MAPPER_DATA_LEN 10 // sizeof(g_mapper_data)
+
+/** Battery level uinion */
+union batt_s
+{
+	uint16_t batt16 = 0;
+	uint8_t batt8[2];
+};
+/** Latitude/Longitude value union */
+union latLong_s
+{
+	uint32_t val32;
+	uint8_t val8[4];
+};
+
+
 #endif
