@@ -35,6 +35,9 @@ bool delayed_active = false;
 /** Minimum delay between sending new locations, set to 45 seconds */
 time_t min_delay = 45000;
 
+/** The GPS module to use */
+uint8_t gnss_option;
+
 // Forward declaration
 void send_delayed(TimerHandle_t unused);
 
@@ -71,7 +74,7 @@ bool init_app(void)
 	digitalWrite(WB_IO2, HIGH);
 
 	// Initialize GNSS module
-	init_result = init_gnss();
+	gnss_option = init_gnss();
 
 	if (g_lorawan_settings.send_repeat_time != 0)
 	{
@@ -122,7 +125,7 @@ void app_event_handler(void)
 		else
 		{
 			MYLOG("APP", "Trying to poll GNSS position");
-			if (poll_gnss())
+			if (poll_gnss(gnss_option))
 			{
 				MYLOG("APP", "Valid GNSS position");
 				if (ble_uart_is_connected)
