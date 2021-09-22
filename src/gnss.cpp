@@ -16,7 +16,8 @@
 #include "main.h"
 
 // The GNSS object
-TinyGPSPlus my_gnss;
+TinyGPSPlus my_rak1910_gnss; 		// RAK1910_GNSS
+SFE_UBLOX_GNSS my_rak12500_gnss;	// RAK12500_GNSS
 
 /** GNSS polling function */
 bool poll_gnss(void);
@@ -34,7 +35,7 @@ bool last_read_ok = false;
  * @brief Initialize the GNSS
  * 
  */
-bool init_gnss(void)
+uint8_t init_gnss(void)
 {
 	bool gnss_found = false;
 	// // Give the module some time to power up
@@ -48,12 +49,27 @@ bool init_gnss(void)
 	// Give the module some time to power up
 	delay(500);
 
+	// Initialize connection to GPS module
+	// First, check if the RAK12500 is connected, otherwise initialize the
+	// RAK1910
+	MYLOG("GNSS", "Trying to initialize RAK12500");
+	Wire.begin();
+	if (my_rak12500_gnss.begin() == false) //Connect to the u-blox module using Wire port
+	{
+		MYLOG("GNSS", "u-blox GNSS not detected at default I2C address");
+	} else {
+		my_rak12500_gnss.setI2COutput(COM_TYPE_UBX); //Set the I2C port to output UBX only (turn off NMEA noise)
+		my_rak12500_gnss.saveConfigSelective(VAL_CFG_SUBSEC_IOPORT); //Save (only) the communications port settings to flash and BBR
+		MYLOG("GNSS", "Detected RAK12500_GNSS");
+		return RAK12500_GNSS;
+	}
+	Wire.end();
+
+	MYLOG("GNSS", "Initialize RAK1910");
 	Serial1.begin(9600);
-	while (!Serial1);
-
-	gnss_found = true;
-
-	return gnss_found;
+	while (!Serial1)
+		;
+	return RAK1910_GNSS;
 }
 
 /**
@@ -62,62 +78,93 @@ bool init_gnss(void)
  * @return true Valid position found
  * @return false No valid position
  */
-bool poll_gnss(void)
-{
+bool poll_gnss(uint8_t gnss_option) {
+
 	time_t time_out = millis();
 	bool has_pos = false;
 	int64_t latitude = 0;
 	int64_t longitude = 0;
 	int32_t altitude = 0;
+	int32_t accuracy = 0;
 
 	bool hasAlt = false;
 
-	MYLOG("GNSS", "Polling RAK1910");
-	if (ble_uart_is_connected) {
-		ble_uart.print("Polling RAK1910\n");
-	}
+	// Poll the GPS according to the initialized module
+	switch(gnss_option) {
 
-	while ((millis() - time_out) < 10000) {
+		case RAK1910_GNSS:
 
-		while (Serial1.available() > 0)
-		{
-			// if (my_gnss.encode(ss.read()))
-			if (my_gnss.encode(Serial1.read()))
-			{
-				digitalToggle(LED_BUILTIN);
-				if (my_gnss.location.isUpdated() && my_gnss.location.isValid())
+			MYLOG("GNSS", "Polling RAK1910");
+			if (ble_uart_is_connected) {
+				ble_uart.print("Polling RAK1910\n");
+			}
+
+			while ((millis() - time_out) < 10000) {
+
+				while (Serial1.available() > 0)
 				{
-					has_pos = true;
-					latitude = my_gnss.location.lat() * 100000;
-					longitude = my_gnss.location.lng() * 100000;
+					// if (my_rak1910_gnss.encode(ss.read()))
+					if (my_rak1910_gnss.encode(Serial1.read()))
+					{
+						digitalToggle(LED_BUILTIN);
+						if (my_rak1910_gnss.location.isUpdated() && my_rak1910_gnss.location.isValid())
+						{
+							has_pos = true;
+							latitude = my_rak1910_gnss.location.lat() * 100000;
+							longitude = my_rak1910_gnss.location.lng() * 100000;
+						}
+						else if (my_rak1910_gnss.altitude.isUpdated() && my_rak1910_gnss.altitude.isValid())
+						{
+							hasAlt = true;
+							altitude = my_rak1910_gnss.altitude.meters();
+						}
+					}
+					// if (has_pos && hasAlt)
+					if (has_pos && hasAlt)
+					{
+						break;
+					}
 				}
-				else if (my_gnss.altitude.isUpdated() && my_gnss.altitude.isValid())
+				if (has_pos && hasAlt)
 				{
-					hasAlt = true;
-					altitude = my_gnss.altitude.meters();
+					break;
 				}
 			}
-			// if (has_pos && hasAlt)
-			if (has_pos && hasAlt)
-			{
-				break;
-			}
-		}
-		if (has_pos && hasAlt)
-		{
 			break;
-		}
+
+		case RAK12500_GNSS:
+
+			MYLOG("GNSS", "Polling RAK12500");
+			if (ble_uart_is_connected) {
+				ble_uart.print("Polling RAK12500\n");
+			}
+
+			if (my_rak12500_gnss.getGnssFixOk()) {
+				latitude = my_rak12500_gnss.getLatitude() / 100;
+				longitude = my_rak12500_gnss.getLongitude() / 100;
+				altitude = my_rak12500_gnss.getAltitude() / 1000;
+				accuracy = my_rak12500_gnss.getPositionAccuracy() / 1000;
+				has_pos = true;
+			}
+
+			break;
+
+		default:
+			MYLOG("GNSS", "No valid gpsOption provided");
+			if (ble_uart_is_connected) {
+				ble_uart.print("No valid gpsOption provided\n");
+			}
 	}
 
 	if (has_pos)
 	{
-		MYLOG("GNSS", "Lat: %.4f Lon: %.4f", latitude / 10000000.0, longitude / 10000000.0);
-		MYLOG("GNSS", "Alt: %.2f", altitude / 1000.0);
+		MYLOG("GNSS", "Lat: %.4fº Lon: %.4fº", latitude / 100000.0, longitude / 100000.0);
+		MYLOG("GNSS", "Alt: %d m", altitude);
 
 		if (ble_uart_is_connected)
 		{
-			ble_uart.printf("Lat: %.4f Lon: %.4f\n", latitude / 100000.0, longitude / 100000.0);
-			ble_uart.printf("Alt: %.2f\n", altitude / 1000.0);
+			ble_uart.printf("Lat: %.4fº Lon: %.4fº\n", latitude / 100000.0, longitude / 100000.0);
+			ble_uart.printf("Alt: %d m\n", altitude);
 		}
 		pos_union.val32 = latitude;
 		g_mapper_data.lat_1 = pos_union.val8[0];
@@ -135,6 +182,10 @@ bool poll_gnss(void)
 		g_mapper_data.alt_1 = pos_union.val8[0];
 		g_mapper_data.alt_2 = pos_union.val8[1];
 
+		pos_union.val32 = accuracy;
+		g_mapper_data.acy_1 = pos_union.val8[0];
+		g_mapper_data.acy_2 = pos_union.val8[1];
+
 	}
 	else
 	{
@@ -143,17 +194,12 @@ bool poll_gnss(void)
 
 	if (has_pos)
 	{
-		// my_gnss.powerSaveMode(true);
-		// my_gnss.setMeasurementRate(10000);
+		// my_rak1910_gnss.powerSaveMode(true);
+		// my_rak1910_gnss.setMeasurementRate(10000);
 		return true;
 	}
 
-	MYLOG("GNSS", "No valid location found");
-	if (ble_uart_is_connected)
-	{
-		ble_uart.print("No valid location found\n");
-	}
 	last_read_ok = false;
-	// my_gnss.setMeasurementRate(1000);
+	// my_rak1910_gnss.setMeasurementRate(1000);
 	return false;
 }

@@ -26,19 +26,29 @@ void lora_tx_finished(bool success);
 void lora_rx_failed(void);
 
 /** Examples for application events */
-#define PIR_TRIGGER   0b1000000000000000
-#define N_PIR_TRIGGER 0b0111111111111111
-#define BUTTON        0b0100000000000000
-#define N_BUTTON      0b1011111111111111
+#define ACC_TRIGGER 0b1000000000000000
+#define N_ACC_TRIGGER 0b0111111111111111
 
 /** Application stuff */
 extern BaseType_t g_higher_priority_task_woken;
 
+// GNSS options
+#define RAK1910_GNSS		1
+#define RAK12500_GNSS		2
+
 // GNSS functions
 #include "TinyGPS++.h"
 #include <SoftwareSerial.h>
-bool init_gnss(void);
-bool poll_gnss(void);
+#include <SparkFun_u-blox_GNSS_Arduino_Library.h>	// RAK12500_GNSS
+uint8_t init_gnss(void);
+bool poll_gnss(uint8_t gnss_option);
+
+/** Accelerometer stuff */
+#include <SparkFunLIS3DH.h>
+#define INT1_PIN WB_IO3
+bool init_acc(void);
+void clear_acc_int(void);
+void read_acc(void);
 
 // LoRaWan functions
 struct mapper_data_s
@@ -53,9 +63,12 @@ struct mapper_data_s
 	uint8_t long_4 = 0;			// 8
 	uint8_t alt_1 = 0;			// 9
 	uint8_t alt_2 = 0;			// 10
+	uint8_t acy_1 = 0;			// 11
+	uint8_t acy_2 = 0;			// 12
+
 };
 extern mapper_data_s g_mapper_data;
-#define MAPPER_DATA_LEN 10 // sizeof(g_mapper_data)
+#define MAPPER_DATA_LEN 12 // sizeof(g_mapper_data)
 
 /** Battery level uinion */
 union batt_s

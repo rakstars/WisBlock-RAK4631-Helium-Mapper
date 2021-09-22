@@ -35,6 +35,9 @@ bool delayed_active = false;
 /** Minimum delay between sending new locations, set to 45 seconds */
 time_t min_delay = 45000;
 
+/** The GPS module to use */
+uint8_t gnss_option;
+
 // Forward declaration
 void send_delayed(TimerHandle_t unused);
 
@@ -71,12 +74,16 @@ bool init_app(void)
 	digitalWrite(WB_IO2, HIGH);
 
 	// Initialize GNSS module
-	init_result = init_gnss();
+	gnss_option = init_gnss();
+
+	// Initialize ACC sensor
+	init_result |= init_acc();
 
 	if (g_lorawan_settings.send_repeat_time != 0)
 	{
 		// Set delay for sending to 1/2 of scheduled sending
-		min_delay = g_lorawan_settings.send_repeat_time / 2;
+		//min_delay = g_lorawan_settings.send_repeat_time / 2;
+		min_delay = 15000;
 	}
 	else
 	{
@@ -105,6 +112,8 @@ void app_event_handler(void)
 		g_task_event_type &= N_STATUS;
 		MYLOG("APP", "Timer wakeup");
 
+		clear_acc_int();
+
 		// If BLE is enabled, restart Advertising
 		if (enable_ble)
 		{
@@ -122,7 +131,7 @@ void app_event_handler(void)
 		else
 		{
 			MYLOG("APP", "Trying to poll GNSS position");
-			if (poll_gnss())
+			if (poll_gnss(gnss_option))
 			{
 				MYLOG("APP", "Valid GNSS position");
 				if (ble_uart_is_connected)
@@ -186,6 +195,67 @@ void app_event_handler(void)
 			delayed_active = false;
 
 
+		}
+	}
+
+		// ACC trigger event
+	if ((g_task_event_type & ACC_TRIGGER) == ACC_TRIGGER)
+	{
+		g_task_event_type &= N_ACC_TRIGGER;
+		MYLOG("APP", "ACC triggered");
+		if (ble_uart_is_connected)
+		{
+			ble_uart.println("ACC triggered");
+		}
+
+		// Check time since last send
+		bool send_now = true;
+		if (g_lorawan_settings.send_repeat_time != 0)
+		{
+			if ((millis() - last_pos_send) < min_delay)
+			{
+				send_now = false;
+				if (!delayed_active)
+				{
+					delayed_sending.stop();
+					MYLOG("APP", "Expired time %d", (int)(millis() - last_pos_send));
+					MYLOG("APP", "Max delay time %d", (int)min_delay);
+					if (ble_uart_is_connected)
+					{
+						ble_uart.printf("Expired time %d\n", (millis() - last_pos_send));
+						ble_uart.printf("Max delay time %d\n", min_delay);
+					}
+					time_t wait_time = abs(min_delay - (millis() - last_pos_send) >= 0) ? (min_delay - (millis() - last_pos_send)) : min_delay;
+					MYLOG("APP", "Wait time %ld", (long)wait_time);
+					if (ble_uart_is_connected)
+					{
+						ble_uart.printf("Wait time %d\n", wait_time);
+					}
+
+					MYLOG("APP", "Only %lds since last position message, send delayed in %lds", (long)((millis() - last_pos_send) / 1000), (long)(wait_time / 1000));
+					if (ble_uart_is_connected)
+					{
+						ble_uart.printf("Only %ds since last pos msg, delay by %ds\n", ((millis() - last_pos_send) / 1000), (wait_time / 1000));
+					}
+					delayed_sending.setPeriod(wait_time);
+					delayed_sending.start();
+					delayed_active = true;
+				}
+			}
+		}
+		if (send_now)
+		{
+			// Remember last send time
+			last_pos_send = millis();
+
+			// Trigger a GNSS reading and packet sending
+			g_task_event_type |= STATUS;
+		}
+
+		// Reset the standard timer
+		if (g_lorawan_settings.send_repeat_time != 0)
+		{
+			g_task_wakeup_timer.reset();
 		}
 	}
 
