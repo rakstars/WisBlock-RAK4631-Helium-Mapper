@@ -117,6 +117,10 @@ void setup()
 				MYLOG("MAIN", "Get your LoRa stuff in order");
 				digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
 				delay(5000);
+				MYLOG("MAIN", "Resseting flash");
+				flash_reset();
+				delay(5000);
+				sd_nvic_SystemReset();
 			}
 		}
 		MYLOG("MAIN", "LoRa init success");

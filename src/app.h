@@ -26,10 +26,8 @@ void lora_tx_finished(bool success);
 void lora_rx_failed(void);
 
 /** Examples for application events */
-#define PIR_TRIGGER   0b1000000000000000
-#define N_PIR_TRIGGER 0b0111111111111111
-#define BUTTON        0b0100000000000000
-#define N_BUTTON      0b1011111111111111
+#define ACC_TRIGGER 0b1000000000000000
+#define N_ACC_TRIGGER 0b0111111111111111
 
 /** Application stuff */
 extern BaseType_t g_higher_priority_task_woken;
@@ -44,6 +42,13 @@ extern BaseType_t g_higher_priority_task_woken;
 #include <SparkFun_u-blox_GNSS_Arduino_Library.h>	// RAK12500_GNSS
 uint8_t init_gnss(void);
 bool poll_gnss(uint8_t gnss_option);
+
+/** Accelerometer stuff */
+#include <SparkFunLIS3DH.h>
+#define INT1_PIN WB_IO3
+bool init_acc(void);
+void clear_acc_int(void);
+void read_acc(void);
 
 // LoRaWan functions
 struct mapper_data_s
