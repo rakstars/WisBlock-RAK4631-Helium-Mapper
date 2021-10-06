@@ -194,7 +194,7 @@ void loop()
 			if ((g_task_event_type & AT_CMD) == AT_CMD)
 			{
 				g_task_event_type &= N_AT_CMD;
-				MYLOG("APP", "USB data received");
+				//MYLOG("APP", "USB data received");
 
 				while (Serial.available() > 0)
 				{
@@ -203,7 +203,7 @@ void loop()
 				}
 			}
 		}
-		MYLOG("MAIN", "Loop goes to sleep");
+		//MYLOG("MAIN", "Loop goes to sleep");
 #if MY_DEBUG > 0
 		Serial.flush();
 #endif

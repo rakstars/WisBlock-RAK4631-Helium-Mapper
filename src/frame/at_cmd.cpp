@@ -1010,7 +1010,16 @@ static void at_cmd_handle(void)
  */
 void at_serial_input(uint8_t cmd)
 {
-	Serial.printf("%c", cmd);
+	if (cmd == '\b')
+	{
+		atcmd[atcmd_index--] = '\0';
+		//Serial.write(8);
+		//Serial.write(32);
+		//Serial.write(8);
+		Serial.printf("\b \b");
+	} else {
+		Serial.printf("%c", cmd);
+	}
 
 	if ((cmd >= '0' && cmd <= '9') || (cmd >= 'a' && cmd <= 'z') ||
 		(cmd >= 'A' && cmd <= 'Z') || cmd == '?' || cmd == '+' || cmd == ':' ||

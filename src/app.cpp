@@ -198,8 +198,8 @@ void app_event_handler(void)
 		}
 	}
 
-		// ACC trigger event
-	if ((g_task_event_type & ACC_TRIGGER) == ACC_TRIGGER)
+	// ACC trigger event
+	if ((g_task_event_type & ACC_TRIGGER) == ACC_TRIGGER &&  lpwan_has_joined)
 	{
 		g_task_event_type &= N_ACC_TRIGGER;
 		MYLOG("APP", "ACC triggered");
