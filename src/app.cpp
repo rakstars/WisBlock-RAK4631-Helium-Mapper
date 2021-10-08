@@ -11,10 +11,10 @@
  * 
  */
 
-#include "main.h"
+#include "app.h"
 
 /** Set the device name, max length is 10 characters */
-char ble_dev_name[10] = "WB-Mapper";
+char g_ble_dev_name[10] = "WB-Mapper";
 
 /** Flag showing if TX cycle is ongoing */
 bool lora_busy = false;
@@ -50,12 +50,12 @@ void setup_app(void)
 		// Called in the very beginning of setup
 	/**************************************************************/
 	/**************************************************************/
-	/// \todo set enable_ble to true if you want to enable BLE
+	/// \todo set g_enable_ble to true if you want to enable BLE
 	/// \todo if true, BLE is enabled and advertise 60 seconds
 	/// \todo after reset or power-up
 	/**************************************************************/
 	/**************************************************************/
-	enable_ble = true;
+	g_enable_ble = true;
 }
 
 /**
@@ -115,7 +115,7 @@ void app_event_handler(void)
 		clear_acc_int();
 
 		// If BLE is enabled, restart Advertising
-		if (enable_ble)
+		if (g_enable_ble)
 		{
 			restart_advertising(15);
 		}
@@ -123,9 +123,9 @@ void app_event_handler(void)
 		if (lora_busy)
 		{
 			MYLOG("APP", "LoRaWAN TX cycle not finished, skip this event");
-			if (ble_uart_is_connected)
+			if (g_ble_uart_is_connected)
 			{
-				ble_uart.print("LoRaWAN TX cycle not finished, skip this event\n");
+				g_ble_uart.print("LoRaWAN TX cycle not finished, skip this event\n");
 			}
 		}
 		else
@@ -134,9 +134,9 @@ void app_event_handler(void)
 			if (poll_gnss(gnss_option))
 			{
 				MYLOG("APP", "Valid GNSS position");
-				if (ble_uart_is_connected)
+				if (g_ble_uart_is_connected)
 				{
-					ble_uart.print("Valid GNSS position\n");
+					g_ble_uart.print("Valid GNSS position\n");
 				}
 
 				Serial.printf("%02X", g_mapper_data.lat_1);
@@ -158,23 +158,23 @@ void app_event_handler(void)
 					MYLOG("APP", "Packet enqueued");
 					/// \todo set a flag that TX cycle is running
 					lora_busy = true;
-					if (ble_uart_is_connected)
+					if (g_ble_uart_is_connected)
 					{
-						ble_uart.print("Packet enqueued\n");
+						g_ble_uart.print("Packet enqueued\n");
 					}
 					break;
 				case LMH_BUSY:
 					MYLOG("APP", "LoRa transceiver is busy");
-					if (ble_uart_is_connected)
+					if (g_ble_uart_is_connected)
 					{
-						ble_uart.print("LoRa transceiver is busy\n");
+						g_ble_uart.print("LoRa transceiver is busy\n");
 					}
 					break;
 				case LMH_ERROR:
 					MYLOG("APP", "Packet error, too big to send with current DR");
-					if (ble_uart_is_connected)
+					if (g_ble_uart_is_connected)
 					{
-						ble_uart.print("Packet error, too big to send with current DR\n");
+						g_ble_uart.print("Packet error, too big to send with current DR\n");
 					}
 					break;
 				}
@@ -183,9 +183,9 @@ void app_event_handler(void)
 			else
 			{
 				MYLOG("APP", "No valid GNSS position");
-				if (ble_uart_is_connected)
+				if (g_ble_uart_is_connected)
 				{
-					ble_uart.print("No valid GNSS position\n");
+					g_ble_uart.print("No valid GNSS position\n");
 				}
 			}
 
@@ -199,13 +199,13 @@ void app_event_handler(void)
 	}
 
 	// ACC trigger event
-	if ((g_task_event_type & ACC_TRIGGER) == ACC_TRIGGER &&  lpwan_has_joined)
+	if ((g_task_event_type & ACC_TRIGGER) == ACC_TRIGGER &&  g_lpwan_has_joined)
 	{
 		g_task_event_type &= N_ACC_TRIGGER;
 		MYLOG("APP", "ACC triggered");
-		if (ble_uart_is_connected)
+		if (g_ble_uart_is_connected)
 		{
-			ble_uart.println("ACC triggered");
+			g_ble_uart.println("ACC triggered");
 		}
 
 		// Check time since last send
@@ -220,22 +220,22 @@ void app_event_handler(void)
 					delayed_sending.stop();
 					MYLOG("APP", "Expired time %d", (int)(millis() - last_pos_send));
 					MYLOG("APP", "Max delay time %d", (int)min_delay);
-					if (ble_uart_is_connected)
+					if (g_ble_uart_is_connected)
 					{
-						ble_uart.printf("Expired time %d\n", (millis() - last_pos_send));
-						ble_uart.printf("Max delay time %d\n", min_delay);
+						g_ble_uart.printf("Expired time %d\n", (millis() - last_pos_send));
+						g_ble_uart.printf("Max delay time %d\n", min_delay);
 					}
 					time_t wait_time = abs(min_delay - (millis() - last_pos_send) >= 0) ? (min_delay - (millis() - last_pos_send)) : min_delay;
 					MYLOG("APP", "Wait time %ld", (long)wait_time);
-					if (ble_uart_is_connected)
+					if (g_ble_uart_is_connected)
 					{
-						ble_uart.printf("Wait time %d\n", wait_time);
+						g_ble_uart.printf("Wait time %d\n", wait_time);
 					}
 
 					MYLOG("APP", "Only %lds since last position message, send delayed in %lds", (long)((millis() - last_pos_send) / 1000), (long)(wait_time / 1000));
-					if (ble_uart_is_connected)
+					if (g_ble_uart_is_connected)
 					{
-						ble_uart.printf("Only %ds since last pos msg, delay by %ds\n", ((millis() - last_pos_send) / 1000), (wait_time / 1000));
+						g_ble_uart.printf("Only %ds since last pos msg, delay by %ds\n", ((millis() - last_pos_send) / 1000), (wait_time / 1000));
 					}
 					delayed_sending.setPeriod(wait_time);
 					delayed_sending.start();
@@ -267,7 +267,7 @@ void app_event_handler(void)
  */
 void ble_data_handler(void)
 {
-	if (enable_ble)
+	if (g_enable_ble)
 	{
 		// BLE UART data handling
 		if ((g_task_event_type & BLE_DATA) == BLE_DATA)
@@ -282,9 +282,9 @@ void ble_data_handler(void)
 			/** BLE UART data arrived */
 			g_task_event_type &= N_BLE_DATA;
 
-			while (ble_uart.available() > 0)
+			while (g_ble_uart.available() > 0)
 			{
-				at_serial_input(uint8_t(ble_uart.read()));
+				at_serial_input(uint8_t(g_ble_uart.read()));
 				delay(5);
 			}
 			at_serial_input(uint8_t('\n'));
@@ -326,13 +326,13 @@ void lora_data_handler(void)
 		/// \todo for debugging
 		/**************************************************************/
 		/**************************************************************/
-		if (ble_uart_is_connected && enable_ble)
+		if (g_ble_uart_is_connected && g_enable_ble)
 		{
 			for (int idx = 0; idx < g_rx_data_len; idx++)
 			{
-				ble_uart.printf("%02X ", g_rx_lora_data[idx]);
+				g_ble_uart.printf("%02X ", g_rx_lora_data[idx]);
 			}
-			ble_uart.print("");
+			g_ble_uart.print("");
 		}
 	}
 
@@ -349,9 +349,9 @@ void lora_data_handler(void)
 		g_task_event_type &= N_LORA_TX_FIN;
 
 		MYLOG("APP", "LPWAN TX cycle %s", g_rx_fin_result ? "finished ACK" : "failed NAK");
-		if (ble_uart_is_connected)
+		if (g_ble_uart_is_connected)
 		{
-			ble_uart.printf("LPWAN TX cycle %s\n", g_rx_fin_result ? "finished ACK" : "failed NAK");
+			g_ble_uart.printf("LPWAN TX cycle %s\n", g_rx_fin_result ? "finished ACK" : "failed NAK");
 		}
 
 		/// \todo reset flag that TX cycle is running

@@ -8,7 +8,7 @@
  * @copyright Copyright (c) 2020
  * 
  */
-#include "main.h"
+#include "app.h"
 
 void acc_int_callback(void);
 

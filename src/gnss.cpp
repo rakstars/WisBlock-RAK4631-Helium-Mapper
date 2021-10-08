@@ -13,7 +13,7 @@
  * @copyright Copyright (c) 2021
  * 
  */
-#include "main.h"
+#include "app.h"
 
 // The GNSS object
 TinyGPSPlus my_rak1910_gnss; 		// RAK1910_GNSS
@@ -89,14 +89,16 @@ bool poll_gnss(uint8_t gnss_option) {
 
 	bool hasAlt = false;
 
+	digitalWrite(LED_BUILTIN, HIGH);
+
 	// Poll the GPS according to the initialized module
 	switch(gnss_option) {
 
 		case RAK1910_GNSS:
 
 			MYLOG("GNSS", "Polling RAK1910");
-			if (ble_uart_is_connected) {
-				ble_uart.print("Polling RAK1910\n");
+			if (g_ble_uart_is_connected) {
+				g_ble_uart.print("Polling RAK1910\n");
 			}
 
 			while ((millis() - time_out) < 10000) {
@@ -135,8 +137,8 @@ bool poll_gnss(uint8_t gnss_option) {
 		case RAK12500_GNSS:
 
 			MYLOG("GNSS", "Polling RAK12500");
-			if (ble_uart_is_connected) {
-				ble_uart.print("Polling RAK12500\n");
+			if (g_ble_uart_is_connected) {
+				g_ble_uart.print("Polling RAK12500\n");
 			}
 
 			if (my_rak12500_gnss.getGnssFixOk()) {
@@ -151,20 +153,23 @@ bool poll_gnss(uint8_t gnss_option) {
 
 		default:
 			MYLOG("GNSS", "No valid gpsOption provided");
-			if (ble_uart_is_connected) {
-				ble_uart.print("No valid gpsOption provided\n");
+			if (g_ble_uart_is_connected) {
+				g_ble_uart.print("No valid gpsOption provided\n");
 			}
 	}
+
+	digitalWrite(LED_BUILTIN, LOW);
+	delay(10);
 
 	if (has_pos)
 	{
 		MYLOG("GNSS", "Lat: %.4fº Lon: %.4fº", latitude / 100000.0, longitude / 100000.0);
 		MYLOG("GNSS", "Alt: %d m", altitude);
 
-		if (ble_uart_is_connected)
+		if (g_ble_uart_is_connected)
 		{
-			ble_uart.printf("Lat: %.4fº Lon: %.4fº\n", latitude / 100000.0, longitude / 100000.0);
-			ble_uart.printf("Alt: %d m\n", altitude);
+			g_ble_uart.printf("Lat: %.4fº Lon: %.4fº\n", latitude / 100000.0, longitude / 100000.0);
+			g_ble_uart.printf("Alt: %d m\n", altitude);
 		}
 		pos_union.val32 = latitude;
 		g_mapper_data.lat_1 = pos_union.val8[0];
