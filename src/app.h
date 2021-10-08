@@ -66,7 +66,7 @@ bool poll_gnss(uint8_t gnss_option);
 
 /** Accelerometer stuff */
 #include <SparkFunLIS3DH.h>
-#define INT1_PIN WB_IO3
+#define INT1_PIN WB_IO5
 bool init_acc(void);
 void clear_acc_int(void);
 void read_acc(void);

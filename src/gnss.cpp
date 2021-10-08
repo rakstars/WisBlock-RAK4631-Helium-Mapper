@@ -89,6 +89,8 @@ bool poll_gnss(uint8_t gnss_option) {
 
 	bool hasAlt = false;
 
+	digitalWrite(LED_BUILTIN, HIGH);
+
 	// Poll the GPS according to the initialized module
 	switch(gnss_option) {
 
@@ -155,6 +157,9 @@ bool poll_gnss(uint8_t gnss_option) {
 				g_ble_uart.print("No valid gpsOption provided\n");
 			}
 	}
+
+	digitalWrite(LED_BUILTIN, LOW);
+	delay(10);
 
 	if (has_pos)
 	{
