@@ -87,7 +87,7 @@ bool poll_gnss(uint8_t gnss_option) {
 	int32_t altitude = 0;
 	int32_t accuracy = 0;
 
-	bool hasAlt = false;
+	bool has_alt = false;
 
 	digitalWrite(LED_BUILTIN, HIGH);
 
@@ -117,17 +117,21 @@ bool poll_gnss(uint8_t gnss_option) {
 						}
 						else if (my_rak1910_gnss.altitude.isUpdated() && my_rak1910_gnss.altitude.isValid())
 						{
-							hasAlt = true;
+							has_alt = true;
 							altitude = my_rak1910_gnss.altitude.meters();
 						}
+						else if (my_rak1910_gnss.hdop.isUpdated() && my_rak1910_gnss.hdop.isValid())
+						{
+							accuracy = my_rak1910_gnss.hdop.hdop() * 100;
+						}
 					}
-					// if (has_pos && hasAlt)
-					if (has_pos && hasAlt)
+					// if (has_pos && has_alt)
+					if (has_pos && has_alt)
 					{
 						break;
 					}
 				}
-				if (has_pos && hasAlt)
+				if (has_pos && has_alt)
 				{
 					break;
 				}
@@ -145,7 +149,7 @@ bool poll_gnss(uint8_t gnss_option) {
 				latitude = my_rak12500_gnss.getLatitude() / 100;
 				longitude = my_rak12500_gnss.getLongitude() / 100;
 				altitude = my_rak12500_gnss.getAltitude() / 1000;
-				accuracy = my_rak12500_gnss.getPositionAccuracy() / 1000;
+				accuracy = my_rak12500_gnss.getHorizontalDOP();
 				has_pos = true;
 			}
 
@@ -165,11 +169,13 @@ bool poll_gnss(uint8_t gnss_option) {
 	{
 		MYLOG("GNSS", "Lat: %.4fº Lon: %.4fº", latitude / 100000.0, longitude / 100000.0);
 		MYLOG("GNSS", "Alt: %d m", altitude);
+		MYLOG("GNSS", "Acy: %.2f ", accuracy / 100.0);
 
 		if (g_ble_uart_is_connected)
 		{
 			g_ble_uart.printf("Lat: %.4fº Lon: %.4fº\n", latitude / 100000.0, longitude / 100000.0);
 			g_ble_uart.printf("Alt: %d m\n", altitude);
+			g_ble_uart.printf("Acy: %.2f\n", accuracy / 100.0);
 		}
 		pos_union.val32 = latitude;
 		g_mapper_data.lat_1 = pos_union.val8[0];

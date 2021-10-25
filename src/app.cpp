@@ -130,6 +130,13 @@ void app_event_handler(void)
 		}
 		else
 		{
+			// Get battery level
+			batt_level.batt16 = read_batt();
+			g_mapper_data.batt_1 = batt_level.batt8[0];
+			g_mapper_data.batt_2 = batt_level.batt8[1];
+			MYLOG("APP", "Battery level %d", batt_level.batt16);
+			g_ble_uart.printf("Battery: %.2f V\n", batt_level.batt16 / 1000.0);
+
 			MYLOG("APP", "Trying to poll GNSS position");
 			if (poll_gnss(gnss_option))
 			{

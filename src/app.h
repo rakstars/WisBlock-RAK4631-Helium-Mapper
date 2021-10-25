@@ -86,10 +86,12 @@ struct mapper_data_s
 	uint8_t alt_2 = 0;			// 10
 	uint8_t acy_1 = 0;			// 11
 	uint8_t acy_2 = 0;			// 12
+	uint8_t batt_1 = 0;			// 13
+	uint8_t batt_2 = 0;			// 14
 
 };
 extern mapper_data_s g_mapper_data;
-#define MAPPER_DATA_LEN 12 // sizeof(g_mapper_data)
+#define MAPPER_DATA_LEN 14 // sizeof(g_mapper_data)
 
 /** Battery level uinion */
 union batt_s
