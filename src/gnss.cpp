@@ -32,9 +32,9 @@ latLong_s pos_union;
 bool last_read_ok = false;
 
 /**
- * @brief Initialize a connected GNSS module. Supports RAK12500 and RAK1910.
+ * @brief Detect and initialize a connected GNSS module. Supports RAK12500 and RAK1910.
  * 
- * @return uint8_t define representing RAK1910 or RAK12500
+ * @return RAK1910 or RAK12500 (uint8_t)
  */
 uint8_t init_gnss(void)
 {
@@ -79,8 +79,7 @@ uint8_t init_gnss(void)
 /**
  * @brief Check GNSS module for position
  * 
- * @return true Valid position found
- * @return false Valid position not found
+ * @return Is valid position found (bool)
  */
 bool poll_gnss(uint8_t gnss_option)
 {
