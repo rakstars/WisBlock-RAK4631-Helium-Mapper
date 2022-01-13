@@ -69,10 +69,10 @@ bool init_app(void)
 	// Add your application specific initialization here
 	bool init_result = true;
 
-	MYLOG("APP", "Application initialisation");
+	MYLOG("APP", "Application initialization");
 	if (g_ble_uart_is_connected)
 	{
-		g_ble_uart.print("Application initialisation\n");
+		g_ble_uart.print("Application initialization\n");
 	}
 
 	pinMode(WB_IO2, OUTPUT);
