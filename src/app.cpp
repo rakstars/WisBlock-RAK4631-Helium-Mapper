@@ -68,7 +68,12 @@ bool init_app(void)
 {
 	// Add your application specific initialization here
 	bool init_result = true;
-	MYLOG("APP", "init_app");
+
+	MYLOG("APP", "Application initialisation");
+	if (g_ble_uart_is_connected)
+	{
+		g_ble_uart.print("Application initialisation\n");
+	}
 
 	pinMode(WB_IO2, OUTPUT);
 	digitalWrite(WB_IO2, HIGH);
@@ -110,7 +115,12 @@ void app_event_handler(void)
 	if ((g_task_event_type & STATUS) == STATUS)
 	{
 		g_task_event_type &= N_STATUS;
+
 		MYLOG("APP", "Timer wakeup");
+		if (g_ble_uart_is_connected)
+		{
+			g_ble_uart.print("Timer wakeup\n");
+		}
 
 		clear_acc_int();
 
@@ -134,10 +144,15 @@ void app_event_handler(void)
 			batt_level.batt16 = read_batt();
 			g_mapper_data.batt_1 = batt_level.batt8[0];
 			g_mapper_data.batt_2 = batt_level.batt8[1];
+			
 			MYLOG("APP", "Battery level %d", batt_level.batt16);
-			g_ble_uart.printf("Battery: %.2f V\n", batt_level.batt16 / 1000.0);
-
 			MYLOG("APP", "Trying to poll GNSS position");
+			if(g_ble_uart_is_connected)
+			{
+				g_ble_uart.printf("Battery: %.2f V\n", batt_level.batt16 / 1000.0);
+				g_ble_uart.print("Trying to poll GNSS position\n");
+			}
+			
 			if (poll_gnss(gnss_option))
 			{
 				MYLOG("APP", "Valid GNSS position");
@@ -163,12 +178,13 @@ void app_event_handler(void)
 				{
 				case LMH_SUCCESS:
 					MYLOG("APP", "Packet enqueued");
-					/// \todo set a flag that TX cycle is running
-					lora_busy = true;
 					if (g_ble_uart_is_connected)
 					{
 						g_ble_uart.print("Packet enqueued\n");
 					}
+					/// \todo set a flag that TX cycle is running
+					lora_busy = true;
+					
 					break;
 				case LMH_BUSY:
 					MYLOG("APP", "LoRa transceiver is busy");
@@ -212,7 +228,7 @@ void app_event_handler(void)
 		MYLOG("APP", "ACC triggered");
 		if (g_ble_uart_is_connected)
 		{
-			g_ble_uart.println("ACC triggered");
+			g_ble_uart.print("ACC triggered\n");
 		}
 
 		// Check time since last send
@@ -285,7 +301,7 @@ void ble_data_handler(void)
 			/// \todo parse them here
 			/**************************************************************/
 			/**************************************************************/
-			MYLOG("AT", "RECEIVED BLE");
+			MYLOG("AT", "Received BLE");
 			/** BLE UART data arrived */
 			g_task_event_type &= N_BLE_DATA;
 
@@ -316,6 +332,11 @@ void lora_data_handler(void)
 		/**************************************************************/
 		g_task_event_type &= N_LORA_DATA;
 		MYLOG("APP", "Received package over LoRa");
+		if (g_ble_uart_is_connected)
+		{
+			g_ble_uart.print("Received package over LoRa\n");
+		}
+
 		char log_buff[g_rx_data_len * 3] = {0};
 		uint8_t log_idx = 0;
 		for (int idx = 0; idx < g_rx_data_len; idx++)
@@ -324,7 +345,12 @@ void lora_data_handler(void)
 			log_idx += 3;
 		}
 		lora_busy = false;
+
 		MYLOG("APP", "%s", log_buff);
+		if (g_ble_uart_is_connected)
+		{
+			g_ble_uart.printf("%s", log_buff);
+		}
 
 		/**************************************************************/
 		/**************************************************************/
