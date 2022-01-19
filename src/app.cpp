@@ -155,23 +155,43 @@ void app_event_handler(void)
 			
 			if (poll_gnss(gnss_option))
 			{
-				MYLOG("APP", "Valid GNSS position");
+				MYLOG("APP", "Valid GNSS position acquired");
 				if (g_ble_uart_is_connected)
 				{
-					g_ble_uart.print("Valid GNSS position\n");
+					g_ble_uart.print("Valid GNSS position acquired\n");
 				}
 
-				Serial.printf("%02X", g_mapper_data.lat_1);
-				Serial.printf("%02X", g_mapper_data.lat_2);
-				Serial.printf("%02X", g_mapper_data.lat_3);
-				Serial.printf("%02X", g_mapper_data.lat_4);
-				Serial.printf("%02X", g_mapper_data.long_1);
-				Serial.printf("%02X", g_mapper_data.long_2);
-				Serial.printf("%02X", g_mapper_data.long_3);
-				Serial.printf("%02X", g_mapper_data.long_4);
-				Serial.printf("%02X", g_mapper_data.alt_1);
-				Serial.printf("%02X", g_mapper_data.alt_2);
-				Serial.println("");
+				MYLOG("APP", "Lat 1: %02X", g_mapper_data.lat_1);
+				MYLOG("APP", "Lat 2: %02X", g_mapper_data.lat_2);
+				MYLOG("APP", "Lat 3: %02X", g_mapper_data.lat_3);
+				MYLOG("APP", "Lat 4: %02X", g_mapper_data.lat_4);
+				MYLOG("APP", "Long 1: %02X", g_mapper_data.long_1);
+				MYLOG("APP", "Long 2: %02X", g_mapper_data.long_2);
+				MYLOG("APP", "Long 3: %02X", g_mapper_data.long_3);
+				MYLOG("APP", "Long 4: %02X", g_mapper_data.long_4);
+				MYLOG("APP", "Alt 1: %02X", g_mapper_data.alt_1);
+				MYLOG("APP", "Alt 2: %02X", g_mapper_data.alt_2);
+				MYLOG("APP", "Acy 1: %02X", g_mapper_data.acy_1);
+				MYLOG("APP", "Acy 2: %02X", g_mapper_data.acy_2);
+				MYLOG("APP", "Batt 1: %02X", g_mapper_data.batt_1);
+				MYLOG("APP", "Batt 2: %02X", g_mapper_data.batt_2);
+
+				if (g_ble_uart_is_connected) {
+					g_ble_uart.printf("Lat 1: %02X\n", g_mapper_data.lat_1);
+					g_ble_uart.printf("Lat 2: %02X\n", g_mapper_data.lat_2);
+					g_ble_uart.printf("Lat 3: %02X\n", g_mapper_data.lat_3);
+					g_ble_uart.printf("Lat 4: %02X\n", g_mapper_data.lat_4);
+					g_ble_uart.printf("Long 1: %02X\n", g_mapper_data.long_1);
+					g_ble_uart.printf("Long 2: %02X\n", g_mapper_data.long_2);
+					g_ble_uart.printf("Long 3: %02X\n", g_mapper_data.long_3);
+					g_ble_uart.printf("Long 4: %02X\n", g_mapper_data.long_4);
+					g_ble_uart.printf("Alt 1: %02X\n", g_mapper_data.alt_1);
+					g_ble_uart.printf("Alt 2: %02X\n", g_mapper_data.alt_2);
+					g_ble_uart.printf("Acy 1: %02X\n", g_mapper_data.acy_1);
+					g_ble_uart.printf("Acy 2: %02X\n", g_mapper_data.acy_2);
+					g_ble_uart.printf("Batt 1: %02X\n", g_mapper_data.batt_1);
+					g_ble_uart.printf("Batt 2: %02X\n", g_mapper_data.batt_2);
+				}
 
 				lmh_error_status result = send_lora_packet((uint8_t *)&g_mapper_data, MAPPER_DATA_LEN);
 				switch (result)

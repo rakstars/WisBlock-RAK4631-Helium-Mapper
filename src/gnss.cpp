@@ -53,7 +53,7 @@ uint8_t init_gnss(void)
 	Wire.begin();
 	bool rak12500_present = my_rak12500_gnss.begin();
 
-	MYLOG("GNSS", "Trying to initialize RAK12500...");
+	MYLOG("GNSS", "Trying to initialize RAK12500");
 
 	if (rak12500_present)
 	{
@@ -106,6 +106,12 @@ bool poll_gnss(uint8_t gnss_option)
 
 		while ((millis() - time_out) < 10000)
 		{
+			uint32_t timer = millis() - time_out;
+
+			if (timer % 10000 == 0) {
+				MYLOG("GNSS", "Timer: %d", timer / 1000);
+			}
+
 			while (Serial1.available() > 0)
 			{
 				// if (my_rak1910_gnss.encode(ss.read()))
