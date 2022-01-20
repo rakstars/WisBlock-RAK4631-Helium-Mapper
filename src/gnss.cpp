@@ -89,6 +89,8 @@ bool poll_gnss(uint8_t gnss_option)
 	int64_t longitude = 0;
 	int32_t altitude = 0;
 	int32_t accuracy = 0;
+	uint32_t polling_seconds;
+	uint32_t polling_miliseconds;
 
 	bool has_alt = false;
 
@@ -106,11 +108,17 @@ bool poll_gnss(uint8_t gnss_option)
 
 		while ((millis() - time_out) < 10000)
 		{
-			uint32_t timer = millis() - time_out;
+			polling_miliseconds = millis() - time_out;
 
-			if (timer % 10000 == 0) {
-				MYLOG("GNSS", "Timer: %d", timer / 1000);
-			}
+			if ( (polling_miliseconds % 1000 == 0) && (polling_miliseconds / 1000 != polling_seconds)) 
+			{
+				polling_seconds = polling_miliseconds / 1000;
+				MYLOG("GNSS", "Polling elapsed time: %d s", polling_seconds);
+				if (g_ble_uart_is_connected)
+				{
+					g_ble_uart.printf("Polling elapsed time: %d s", polling_seconds);
+				}
+			} 
 
 			while (Serial1.available() > 0)
 			{
