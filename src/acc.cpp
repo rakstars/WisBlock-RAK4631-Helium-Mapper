@@ -57,7 +57,7 @@ bool init_acc(void)
 	//acc_sensor.writeRegister(LIS3DH_INT1_THS, data_to_write); // 1/8th range
 	// data_to_write |= 0x08;									  // 1/16 range
 	// acc_sensor.writeRegister(LIS3DH_INT1_THS, data_to_write); // 1/16th range
-	data_to_write |= 0x01;									      // A lower threshold for mapping purposes
+	data_to_write |= 0x03;									      // A lower threshold for mapping purposes
 	acc_sensor.writeRegister(LIS3DH_INT1_THS, data_to_write); 
 
 	// Set interrupt signal length
