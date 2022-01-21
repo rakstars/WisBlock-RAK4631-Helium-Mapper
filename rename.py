@@ -12,4 +12,4 @@ version_tag_2 = defines.get("SW_VERSION_2")
 version_tag_3 = defines.get("SW_VERSION_3")
 build_date = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
 
-env.Replace(PROGNAME="../../../Generated/WisBlock_RAK4631_V%s.%s.%s_%s" % (version_tag_1,version_tag_2,version_tag_3,build_date))
+env.Replace(PROGNAME="../../../Generated/WisBlock-RAK4631-Helium-Mapper_v%s.%s.%s" % (version_tag_1,version_tag_2,version_tag_3))
