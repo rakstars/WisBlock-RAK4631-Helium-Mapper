@@ -299,7 +299,8 @@ void app_event_handler(void)
 		// Reset the standard timer
 		if (g_lorawan_settings.send_repeat_time != 0)
 		{
-			g_task_wakeup_timer.reset();
+			//g_task_wakeup_timer.reset();
+			api_timer_restart(g_lorawan_settings.send_repeat_time);
 		}
 	}
 
