@@ -56,7 +56,54 @@ void setup_app(void)
 	/**************************************************************/
 	/**************************************************************/
 	g_enable_ble = true;
-	api_set_version(1, 0, 2);
+
+	// Additional check if the subband from the settings is valid
+	// Read LoRaWAN settings from flash
+	api_read_credentials();
+	switch ((LoRaMacRegion_t)g_lorawan_settings.lora_region)
+	{
+	case LORAMAC_REGION_AS923:
+	case LORAMAC_REGION_AS923_2:
+	case LORAMAC_REGION_AS923_3:
+	case LORAMAC_REGION_AS923_4:
+	case LORAMAC_REGION_RU864:
+		if (g_lorawan_settings.subband_channels > 1)
+		{
+			g_lorawan_settings.subband_channels = 1;
+			// Save LoRaWAN settings
+			api_set_credentials();
+		}
+		break;
+	case LORAMAC_REGION_AU915:
+	case LORAMAC_REGION_US915:
+		if (g_lorawan_settings.subband_channels > 9)
+		{
+			g_lorawan_settings.subband_channels = 1;
+			// Save LoRaWAN settings
+			api_set_credentials();
+		}
+		break;
+	case LORAMAC_REGION_CN470:
+		if (g_lorawan_settings.subband_channels > 12)
+		{
+			g_lorawan_settings.subband_channels = 1;
+			// Save LoRaWAN settings
+			api_set_credentials();
+		}
+		break;
+	case LORAMAC_REGION_CN779:
+	case LORAMAC_REGION_EU433:
+	case LORAMAC_REGION_IN865:
+	case LORAMAC_REGION_EU868:
+	case LORAMAC_REGION_KR920:
+		if (g_lorawan_settings.subband_channels > 2)
+		{
+			g_lorawan_settings.subband_channels = 1;
+			// Save LoRaWAN settings
+			api_set_credentials();
+		}
+		break;
+	}
 }
 
 /**
