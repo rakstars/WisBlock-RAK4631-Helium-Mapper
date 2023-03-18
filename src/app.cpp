@@ -1,14 +1,14 @@
 /**
  * @file app.cpp
  * @author Bernd Giesecke (bernd.giesecke@rakwireless.com)
- * @brief Application specific functions. Mandatory to have init_app(), 
+ * @brief Application specific functions. Mandatory to have init_app(),
  *        app_event_handler(), ble_data_handler(), lora_data_handler()
  *        and lora_tx_finished()
  * @version 0.1
  * @date 2021-04-23
- * 
+ *
  * @copyright Copyright (c) 2021
- * 
+ *
  */
 
 #include "app.h"
@@ -43,11 +43,11 @@ void send_delayed(TimerHandle_t unused);
 
 /**
  * @brief Application specific setup functions
- * 
+ *
  */
 void setup_app(void)
 {
-		// Called in the very beginning of setup
+	// Called in the very beginning of setup
 	/**************************************************************/
 	/**************************************************************/
 	/// \todo set g_enable_ble to true if you want to enable BLE
@@ -56,6 +56,25 @@ void setup_app(void)
 	/**************************************************************/
 	/**************************************************************/
 	g_enable_ble = true;
+
+	// Initialize Serial for debug output
+	Serial.begin(115200);
+
+	time_t serial_timeout = millis();
+	// On nRF52840 the USB serial is not available immediately
+	while (!Serial)
+	{
+		if ((millis() - serial_timeout) < 5000)
+		{
+			delay(100);
+			digitalWrite(LED_GREEN, !digitalRead(LED_GREEN));
+		}
+		else
+		{
+			break;
+		}
+	}
+	digitalWrite(LED_GREEN, LOW);
 
 	// Additional check if the subband from the settings is valid
 	// Read LoRaWAN settings from flash
@@ -108,7 +127,7 @@ void setup_app(void)
 
 /**
  * @brief Application specific initializations
- * 
+ *
  * @return true Initialization success
  * @return false Initialization failure
  */
@@ -126,16 +145,29 @@ bool init_app(void)
 	pinMode(WB_IO2, OUTPUT);
 	digitalWrite(WB_IO2, HIGH);
 
+	AT_PRINTF("WisBlock Helium Mapper");
+	AT_PRINTF("======================");
+
 	// Initialize GNSS module
 	gnss_option = init_gnss();
 
 	// Initialize ACC sensor
 	init_result |= init_acc();
 
+	if (gnss_option != 0)
+	{
+		AT_PRINTF("+EVT:GNSS OK");
+	}
+
+	if (init_result)
+	{
+		AT_PRINTF("+EVT:ACC OK");
+	}
+
 	if (g_lorawan_settings.send_repeat_time != 0)
 	{
 		// Set delay for sending to 1/2 of scheduled sending
-		//min_delay = g_lorawan_settings.send_repeat_time / 2;
+		// min_delay = g_lorawan_settings.send_repeat_time / 2;
 		min_delay = 15000;
 	}
 	else
@@ -192,17 +224,18 @@ void app_event_handler(void)
 			batt_level.batt16 = read_batt();
 			g_mapper_data.batt_1 = batt_level.batt8[0];
 			g_mapper_data.batt_2 = batt_level.batt8[1];
-			
+
 			MYLOG("APP", "Battery level %d", batt_level.batt16);
 			MYLOG("APP", "Trying to poll GNSS position");
-			if(g_ble_uart_is_connected)
+			if (g_ble_uart_is_connected)
 			{
 				g_ble_uart.printf("Battery: %.2f V\n", batt_level.batt16 / 1000.0);
 				g_ble_uart.print("Trying to poll GNSS position\n");
 			}
-			
+
 			if (poll_gnss(gnss_option))
 			{
+				AT_PRINTF("+EVT:LOCATION OK")
 				MYLOG("APP", "Valid GNSS position acquired");
 				if (g_ble_uart_is_connected)
 				{
@@ -224,7 +257,8 @@ void app_event_handler(void)
 				MYLOG("APP", "Batt 1: %02X", g_mapper_data.batt_1);
 				MYLOG("APP", "Batt 2: %02X", g_mapper_data.batt_2);
 
-				if (g_ble_uart_is_connected) {
+				if (g_ble_uart_is_connected)
+				{
 					g_ble_uart.printf("Lat 1: %02X\n", g_mapper_data.lat_1);
 					g_ble_uart.printf("Lat 2: %02X\n", g_mapper_data.lat_2);
 					g_ble_uart.printf("Lat 3: %02X\n", g_mapper_data.lat_3);
@@ -252,7 +286,7 @@ void app_event_handler(void)
 					}
 					/// \todo set a flag that TX cycle is running
 					lora_busy = true;
-					
+
 					break;
 				case LMH_BUSY:
 					MYLOG("APP", "LoRa transceiver is busy");
@@ -269,10 +303,10 @@ void app_event_handler(void)
 					}
 					break;
 				}
-
 			}
 			else
 			{
+				AT_PRINTF("+EVT:LOCATION FAIL")
 				MYLOG("APP", "No valid GNSS position");
 				if (g_ble_uart_is_connected)
 				{
@@ -284,13 +318,11 @@ void app_event_handler(void)
 			last_pos_send = millis();
 			// Just in case
 			delayed_active = false;
-
-
 		}
 	}
 
 	// ACC trigger event
-	if ((g_task_event_type & ACC_TRIGGER) == ACC_TRIGGER &&  g_lpwan_has_joined)
+	if ((g_task_event_type & ACC_TRIGGER) == ACC_TRIGGER && g_lpwan_has_joined)
 	{
 		g_task_event_type &= N_ACC_TRIGGER;
 		MYLOG("APP", "ACC triggered");
@@ -349,12 +381,11 @@ void app_event_handler(void)
 			api_timer_restart(g_lorawan_settings.send_repeat_time);
 		}
 	}
-
 }
 
 /**
  * @brief Handle BLE UART data
- * 
+ *
  */
 void ble_data_handler(void)
 {
@@ -385,56 +416,71 @@ void ble_data_handler(void)
 
 /**
  * @brief Handle received LoRa Data
- * 
+ *
  */
 void lora_data_handler(void)
 {
+	// LoRa Join finished handling
+	if ((g_task_event_type & LORA_JOIN_FIN) == LORA_JOIN_FIN)
+	{
+		g_task_event_type &= N_LORA_JOIN_FIN;
+		if (g_join_result)
+		{
+			AT_PRINTF("+EVT:JOINED\n");
+			last_pos_send = millis();
+		}
+		else
+		{
+			AT_PRINTF("+EVT:JOIN FAILED\n");
+			/// \todo here join could be restarted.
+			lmh_join();
+
+#if defined NRF52_SERIES || defined ESP32
+			// If BLE is enabled, restart Advertising
+			if (g_enable_ble)
+			{
+				restart_advertising(15);
+			}
+#endif
+		}
+	}
+
 	// LoRa data handling
 	if ((g_task_event_type & LORA_DATA) == LORA_DATA)
 	{
-		/**************************************************************/
-		/**************************************************************/
-		/// \todo LoRa data arrived
-		/// \todo parse them here
-		/**************************************************************/
-		/**************************************************************/
 		g_task_event_type &= N_LORA_DATA;
-		MYLOG("APP", "Received package over LoRa");
-		if (g_ble_uart_is_connected)
+		// Check if uplink was a send interval change command
+		if ((g_last_fport == 3) && (g_rx_data_len == 6))
 		{
-			g_ble_uart.print("Received package over LoRa\n");
+			if (g_rx_lora_data[0] == 0xAA)
+			{
+				if (g_rx_lora_data[1] == 0x55)
+				{
+					uint32_t new_send_interval = 0;
+					new_send_interval |= (uint32_t)(g_rx_lora_data[2]) << 24;
+					new_send_interval |= (uint32_t)(g_rx_lora_data[3]) << 16;
+					new_send_interval |= (uint32_t)(g_rx_lora_data[4]) << 8;
+					new_send_interval |= (uint32_t)(g_rx_lora_data[5]);
+
+					AT_PRINTF("+EVT:SEND_INT_CHANGE %ld", new_send_interval);
+					// Save the new send interval
+					g_lorawan_settings.send_repeat_time = new_send_interval * 1000;
+
+					// Set the timer to the new send interval
+					api_timer_restart(g_lorawan_settings.send_repeat_time);
+					// Save the new send interval
+					save_settings();
+				}
+			}
 		}
 
-		char log_buff[g_rx_data_len * 3] = {0};
-		uint8_t log_idx = 0;
+		char rx_data[512];
 		for (int idx = 0; idx < g_rx_data_len; idx++)
 		{
-			sprintf(&log_buff[log_idx], "%02X ", g_rx_lora_data[idx]);
-			log_idx += 3;
-		}
-		lora_busy = false;
-
-		MYLOG("APP", "%s", log_buff);
-		if (g_ble_uart_is_connected)
-		{
-			g_ble_uart.printf("%s", log_buff);
+			sprintf(&rx_data[idx * 2], "%02x", g_rx_lora_data[idx]);
 		}
 
-		/**************************************************************/
-		/**************************************************************/
-		/// \todo Just an example, if BLE is enabled and BLE UART
-		/// \todo is connected you can send the received data
-		/// \todo for debugging
-		/**************************************************************/
-		/**************************************************************/
-		if (g_ble_uart_is_connected && g_enable_ble)
-		{
-			for (int idx = 0; idx < g_rx_data_len; idx++)
-			{
-				g_ble_uart.printf("%02X ", g_rx_lora_data[idx]);
-			}
-			g_ble_uart.print("");
-		}
+		AT_PRINTF("+EVT:RX_1:%d:%d:UNICAST:%d:%s\n", g_last_rssi, g_last_snr, g_last_fport, rx_data);
 	}
 
 	// LoRa TX finished handling
@@ -449,10 +495,13 @@ void lora_data_handler(void)
 		/**************************************************************/
 		g_task_event_type &= N_LORA_TX_FIN;
 
-		MYLOG("APP", "LPWAN TX cycle %s", g_rx_fin_result ? "finished ACK" : "failed NAK");
-		if (g_ble_uart_is_connected)
+		if ((g_lorawan_settings.confirmed_msg_enabled) && (g_lorawan_settings.lorawan_enable))
 		{
-			g_ble_uart.printf("LPWAN TX cycle %s\n", g_rx_fin_result ? "finished ACK" : "failed NAK");
+			AT_PRINTF("+EVT:SEND CONFIRMED %s\n", g_rx_fin_result ? "SUCCESS" : "FAIL");
+		}
+		else
+		{
+			AT_PRINTF("+EVT:SEND OK\n");
 		}
 
 		/// \todo reset flag that TX cycle is running
@@ -472,8 +521,8 @@ void tud_cdc_rx_cb(uint8_t itf)
 /**
  * @brief Timer function used to avoid sending packages too often.
  * 			Delays the next package by 10 seconds
- * 
- * @param unused 
+ *
+ * @param unused
  * 			Timer handle, not used
  */
 void send_delayed(TimerHandle_t unused)
